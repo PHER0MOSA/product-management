@@ -1,0 +1,102 @@
+openapi: 3.0.4
+info:
+  title: Product
+  version: 1.0.0
+  description: 商品管理デモ。OpenAPI Specification については[github](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.4.md#schema-1)を参照。
+servers:
+  - url: http://localhost:8080
+    description: ローカルサーバー
+tags:
+  - name: Product
+    description: 商品管理API
+paths:
+  /products:
+    get:
+      summary: 商品一覧取得する
+      operationId: getProducts
+      tags:
+        - Product
+      responses:
+        '200':
+          description: 商品の一覧を返す
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+  /products/{id}:
+    get:
+      summary: 商品をIDで取得する
+      operationId: getProductById
+      tags:
+        - Product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/productID'
+      responses:
+        '200':
+          description: 商品を返す
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: 商品が見つからない場合
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonError'
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/productID'
+        name:
+          $ref: '#/components/schemas/productName'
+        price:
+          $ref: '#/components/schemas/price'
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - price
+      example:
+        id: 1
+        name: "商品A"
+        price: 1000
+    productID:
+      type: integer
+      description: 商品ID
+      example: 1
+      minimum: 1
+    productName:
+      type: string
+      description: 商品名
+      example: "商品A"
+      maxLength: 20
+    price:
+      type: integer
+      description: 商品価格
+      example: 1000
+      minimum: 0
+    CommonError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: エラーコード
+          example: "A3301"
+        message:
+          type: string
+          description: エラーメッセージ
+          example: "エラーメッセージ"

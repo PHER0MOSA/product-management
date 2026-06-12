@@ -1,0 +1,34 @@
+services:
+  # 1. 設計図を編集するエディタ (8081番)
+  swagger-editor:
+    image: swaggerapi/swagger-editor
+    container_name: swagger-editor
+    ports:
+      - "8081:80"
+    volumes:
+      - .:/tmp
+    environment:
+      - SWAGGER_FILE=/tmp/openapi.yaml
+
+  # 2. 設計図を綺麗に表示するUIドキュメント (8082番)
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8082:8080"
+    volumes:
+      - .:/openapi
+    environment:
+      - SWAGGER_JSON=/openapi/openapi.yaml
+
+  # 3. フロント画面を配信するWebサーバー (3000番)
+  web-client:
+    image: nginx:alpine
+    container_name: products-client
+    ports:
+      - "3000:80"
+    volumes:
+      - ./client:/usr/share/nginx/html
+
+  # 4. APIサーバー は/server配下でgo run main.goを実行して起動する
+  # (Goのコードを書き換えるたびにコンテナをビルドしたくないため、docker-composeでは起動しない。)

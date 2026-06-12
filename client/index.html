@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理デモアプリ (productsManage)</title>
+    <style>
+        body { font-family: system-ui, sans-serif; line-height: 1.6; padding: 24px; }
+        button { margin: 0 8px 8px 0; padding: 10px 14px; }
+        input[type="text"] { width: 120px; padding: 8px; margin-right: 8px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-width: 720px; }
+        pre { background: #f7f7f7; padding: 12px; border-radius: 6px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <h1>商品管理デモシステム</h1>
+    <div class="card">
+        <p>API デモ用ボタンです。バックエンド <code>http://localhost:8080</code> へアクセスします。</p>
+
+        <div>
+            <button id="btnProducts">商品一覧を取得</button>
+        </div>
+
+        <div>
+            <label for="productId">商品ID:</label>
+            <input id="productId" type="text" placeholder="1" />
+            <button id="btnProductById">ID で検索</button>
+        </div>
+
+        <div>
+            <h2>レスポンス</h2>
+            <pre id="result">ここに API の結果が表示されます。</pre>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = 'http://localhost:8080';
+        const resultEl = document.getElementById('result');
+
+        function showResult(value) {
+            resultEl.textContent = value;
+        }
+
+        async function fetchProducts() {
+            try {
+                showResult('読み込み中...');
+                const res = await fetch(`${apiBase}/products`);
+                const data = await res.json();
+                if (!res.ok) {
+                    showResult(`エラー: ${res.status} ${res.statusText}\n${JSON.stringify(data, null, 2)}`);
+                    return;
+                }
+                showResult(JSON.stringify(data, null, 2));
+            } catch (err) {
+                showResult(`通信エラー: ${err.message}`);
+            }
+        }
+
+        async function fetchProductById() {
+            const id = document.getElementById('productId').value.trim();
+            if (!id) {
+                showResult('検索したい商品IDを入力してください。');
+                return;
+            }
+            try {
+                showResult('読み込み中...');
+                const res = await fetch(`${apiBase}/products/${encodeURIComponent(id)}`);
+                const data = await res.json();
+                if (!res.ok) {
+                    showResult(`エラー: ${res.status} ${res.statusText}\n${JSON.stringify(data, null, 2)}`);
+                    return;
+                }
+                showResult(JSON.stringify(data, null, 2));
+            } catch (err) {
+                showResult(`通信エラー: ${err.message}`);
+            }
+        }
+
+        document.getElementById('btnProducts').addEventListener('click', fetchProducts);
+        document.getElementById('btnProductById').addEventListener('click', fetchProductById);
+    </script>
+
+</body>
+</html>
