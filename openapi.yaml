@@ -80,6 +80,7 @@ components:
       type: string
       description: 商品名
       example: "商品A"
+      minLength: 1
       maxLength: 20
     price:
       type: integer
