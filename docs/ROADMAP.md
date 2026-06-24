@@ -57,7 +57,7 @@ flowchart LR
 
 ```
 server/
-  cmd/server/main.go              # DI・起動のみ
+  cmd/api/main.go              # DI・起動のみ
   internal/
     product/
       domain/                     # エンティティ・repository interface
@@ -82,7 +82,7 @@ docs/
 
 ```mermaid
 flowchart TB
-  Main["cmd/server/main.go"]
+  Main["cmd/api/main.go"]
   Handler["product/handler"]
   App["product/application"]
   Domain["product/domain"]
@@ -177,7 +177,7 @@ flowchart LR
 |---|---|
 | `internal/infrastructure/postgres/` | DB 接続、トランザクション |
 | `internal/middleware/`（将来） | 認証、ログ、CORS |
-| `cmd/server/main.go` | DI 配線 |
+| `cmd/api/main.go` | DI 配線 |
 
 handler のエラー形式統一など **全 API 横断** の変更は、共通 middleware または各 `handler/` の規約で揃える。
 
@@ -191,23 +191,83 @@ handler のエラー形式統一など **全 API 横断** の変更は、共通 
 | 画面 | 一覧・詳細（商品参照のみ） |
 | ROADMAP フェーズ 1〜5 | 商品カタログ閲覧が中心 |
 
-`CommonError` は **ドメインエンティティではない**（HTTP エラーレスポンス用 DTO）。`product/domain/` には置かず、`handler` 層で扱う。
+`CommonError` は **ドメインエンティティではない**（HTTP エラーレスポンス用 DTO）。`product/domain/` に置かず、`handler` 層で扱う。
+
+バリデーションルールの正は **`openapi.yaml`**（例: `productName` の `minLength: 1`, `maxLength: 20`）。
+
+#### ドメインの型設計（VO / Entity）
+
+| 種別 | 型 | 理由 |
+|---|---|---|
+| VO（`ProductID`, `ProductName`, `ProductPrice`） | **値型** | 不変。バリデーション済みの値として扱う |
+| Entity（`Product`） | **ポインタ型**（`*Product`） | **ID は同一性で不変**、`Name` / `Price` は**可変**。同一インスタンスを指したまま更新するため |
+| VO のポインタ（`*ProductID` 等） | **使わない** | `nil` の意味（未設定・無効・未ロード）が曖昧になる |
+
+**コンストラクタ**
+
+| 関数 | 戻り値 |
+|---|---|
+| `NewProductID`, `NewProductName`, `NewProductPrice` | `(VO, error)` — 値型 |
+| `NewProduct` | `(*Product, error)` — 成功時は非 nil |
+
+**VO の運用**
+
+- VO は **必ず `New*` で作る**。無効な入力は error を返し、VO としては存在しない扱いにする
+- `ProductID{}` 等のゼロ値は VO として使わない（チーム規約）
+- バリデーションは各 VO の `New*` に集約する。`NewProduct` は検証済み VO を信頼する
+
+**`*Product` と nil**
+
+| 状況 | 戻り値 |
+|---|---|
+| 取得成功・生成成功 | `product, nil`（`product != nil`） |
+| バリデーション失敗 | `nil, err` |
+| 商品が見つからない | `nil, ErrProductNotFound` |
+
+`nil, nil`（ポインタも error も nil）は使わない。
+
+**Entity の可変性（将来の CRUD 向け）**
+
+- `ID` … 生成後は変えない（同一性）
+- `Name`, `Price` … `ChangeName`, `ChangePrice` 等で更新。引数は `New*` 済みの VO を受け取る
+
+#### Value Object
+
+| VO | 元の型 | ルール（openapi 準拠） |
+|---|---|---|
+| `ProductID` | `int64` | 1 以上 |
+| `ProductName` | `string` | 空でない、最大 20 文字 |
+| `ProductPrice` | `int64` | 0 以上（円単位の整数） |
+
+```go
+// internal/product/domain/（実装イメージ）
+type ProductID struct { /* 非公開フィールド */ }
+type ProductName struct { /* 非公開フィールド */ }
+type ProductPrice struct { /* 非公開フィールド */ }
+
+func NewProductID(v int64) (ProductID, error)
+func NewProductName(v string) (ProductName, error)
+func NewProductPrice(v int64) (ProductPrice, error)
+```
 
 #### Product エンティティ
 
-| フィールド | 型 | ルール | 備考 |
+| フィールド | 型 | ルール | 可変 |
 |---|---|---|---|
-| `ID` | `int64` | 1 以上 | OpenAPI `productID` |
-| `Name` | `string` | 空でない、最大 20 文字 | OpenAPI `productName` |
-| `Price` | `int64` | 0 以上 | 円単位の整数 |
+| `ID` | `ProductID` | 1 以上 | 不変（同一性） |
+| `Name` | `ProductName` | 空でない、最大 20 文字 | 可変 |
+| `Price` | `ProductPrice` | 0 以上 | 可変 |
 
 ```go
-// internal/product/domain/product.go（実装時のイメージ）
+// internal/product/domain/product.go（実装イメージ）
 type Product struct {
-    ID    int64
-    Name  string
-    Price int64
+    id    ProductID    // 非公開（同一性。生成後は不変）
+    Name  ProductName
+    Price ProductPrice
 }
+
+func NewProduct(id ProductID, name ProductName, price ProductPrice) (*Product, error)
+func (p *Product) ID() ProductID
 ```
 
 #### ドメインエラー
@@ -222,8 +282,8 @@ type Product struct {
 
 ```go
 type ProductRepository interface {
-    List(ctx context.Context) ([]Product, error)
-    GetByID(ctx context.Context, id int64) (Product, error)
+    List(ctx context.Context) ([]*Product, error)
+    GetByID(ctx context.Context, id ProductID) (*Product, error)
 }
 ```
 
@@ -231,13 +291,14 @@ type ProductRepository interface {
 
 #### レイヤーごとの型の扱い
 
-- **domain の `Product`** と **API JSON** はフィールドが同じなので、現フェーズでは変換なしでよい
-- 将来フィールドが分かれたら `handler` で DTO を導入する
+- **domain**: VO は値型、Entity は `*Product`
+- **application / repository**: `*Product` を受け渡し
+- **handler**: JSON 変換時に VO から primitive へ（`.Value()` 等）。パス `id` は `int64` → `NewProductID`
+- 現フェーズは domain と API JSON のフィールドが対応するが、将来分かれたら `handler` で DTO を導入する
 
 #### 作らないもの（現フェーズ）
 
 - `Order` エンティティ
-- `ProductID` 等の Value Object 型（学習が進んだら検討可）
 - `description`, `stock`, `createdAt` 等の拡張フィールド
 
 ### API エンドポイント
