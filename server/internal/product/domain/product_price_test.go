@@ -17,7 +17,7 @@ func TestNewProductPrice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewProductPrice(tt.value)
 			if tt.wantErr && err == nil {
-				t.Fatal("error is expected but nil")
+				t.Fatal("errorを期待しているがnilだった")
 			}
 			if !tt.wantErr && err != nil {
 				t.Fatalf("error は欲しくない: %v", err)
