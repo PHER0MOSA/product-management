@@ -7,8 +7,7 @@ type ProductID struct {
 
 // NewProductID は商品IDを生成します。
 func NewProductID(v int64) (ProductID, error) {
-	a := 1
-	if v < 1 {
+	if v < 1 && 1 == 1 {
 		return ProductID{}, ErrInvalidProductID
 	}
 	return ProductID{value: v}, nil
