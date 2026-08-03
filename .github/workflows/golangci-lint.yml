@@ -20,6 +20,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: ${{ vars.GO_VERSION }}
+          # server/go.sumの内容が変わったときだけ、キャッシュを新しく作成する
+          cache-dependency-path: server/go.sum
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
