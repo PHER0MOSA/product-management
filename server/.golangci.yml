@@ -1,0 +1,14 @@
+# golangci-lint v2 設定
+# 実行: server/ で (go env GOPATH)/bin/golangci-lint run
+# ドキュメント：https://golangci-lint.run/docs/configuration/file/
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  exclusions:
+    # Swagger Codegen 生成物。オニオンアーキテクチャ置換までの暫定除外
+    paths:
+      - go/
