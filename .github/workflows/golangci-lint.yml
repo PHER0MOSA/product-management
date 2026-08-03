@@ -1,0 +1,29 @@
+# 参考
+# https://github.com/marketplace/actions/golangci-lint
+name: golangci-lint
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  # Optional: allow read access to pull requests. Use with `only-new-issues` option.
+  # pull-requests: read
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ vars.GO_VERSION }}
+          # server/go.sumの内容が変わったときだけ、キャッシュを新しく作成する
+          cache-dependency-path: server/go.sum
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: server

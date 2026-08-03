@@ -394,7 +394,7 @@ tbls doc -c db/.tbls.yml
 
 ## 成功基準
 
-- [ ] `go test ./...` がローカル・CI で通る
+- [x] `go test ./...` がローカル・CI で通る
 - [ ] golangci-lint が CI で通る
 - [ ] PostgreSQL から商品一覧・詳細が取得できる
 - [ ] `http://localhost:3000` で一覧 → 詳細遷移ができる
