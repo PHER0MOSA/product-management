@@ -1,3 +1,9 @@
+# 起動方法: docker compose up -d
+# -d: コンテナをバッググラウンドで起動させる（detach）
+# 停止方法: docker compose down
+# コンテナに入る: docker container exec -it <コンテナ名> bash
+# -i: 標準入力を有効にする
+# -t: 擬似端末を割り当てる
 services:
   # 1. 設計図を編集するエディタ (8081番)
   swagger-editor:
@@ -30,5 +36,29 @@ services:
     volumes:
       - ./client:/usr/share/nginx/html
 
-  # 4. APIサーバー は/server配下でgo run main.goを実行して起動する
+  # 4. PostgreSQL（商品データの永続化）
+  db:
+    image: postgres:16
+    container_name: products-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: products
+      POSTGRES_PASSWORD: products
+      POSTGRES_DB: products
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # 目的: 「Postgres が接続を受け付ける状態か」を定期チェックする。
+    # docker compose ps で healthy と分かり、他サービスやスクリプトが起動完了を待てる。
+    healthcheck:
+      # pg_isready: Postgres 付属の「受け付け可能か」確認コマンド（-U/-d はユーザーとDB名）
+      test: ["CMD-SHELL", "pg_isready -U products -d products"]
+      interval: 5s   # チェック間隔（5秒ごと）
+      timeout: 5s    # 1回のチェックがこの時間を超えたら失敗扱い
+      retries: 5     # 連続失敗がこの回数に達するまで unhealthy にしない（起動直後の猶予）
+
+  # 5. APIサーバー は/server配下でgo run main.goを実行して起動する
   # (Goのコードを書き換えるたびにコンテナをビルドしたくないため、docker-composeでは起動しない。)
+
+volumes:
+  postgres_data:
