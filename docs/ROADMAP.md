@@ -317,6 +317,7 @@ product-management/
     .tbls.yml         # tbls 設定
   docs/
     ROADMAP.md        # 本ファイル（方針・ロードマップ）
+    tools.md          # 開発ツール学習メモ（PostgreSQL / Go / golangci-lint / DBeaver / nginx）
     schema/           # tbls 生成物（CI で検証）
   server/             # Go API
   openapi.yaml        # API 契約（Swagger UI で閲覧）
