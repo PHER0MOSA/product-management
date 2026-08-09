@@ -2,6 +2,8 @@
 # -d: コンテナをバッググラウンドで起動させる（detach）
 # 停止方法: docker compose down
 # コンテナに入る: docker container exec -it <コンテナ名> bash
+# (web-clientはbashがないのでshで起動する)
+# docker container exec -it web-client sh
 # -i: 標準入力を有効にする
 # -t: 擬似端末を割り当てる
 services:
@@ -41,7 +43,7 @@ services:
     image: postgres:16
     container_name: products-db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: products
       POSTGRES_PASSWORD: products
@@ -49,7 +51,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # 目的: 「Postgres が接続を受け付ける状態か」を定期チェックする。
-    # docker compose ps で healthy と分かり、他サービスやスクリプトが起動完了を待てる。
+    # docker compose ps やスクリプトで healthy を確認できる。
     healthcheck:
       # pg_isready: Postgres 付属の「受け付け可能か」確認コマンド（-U/-d はユーザーとDB名）
       test: ["CMD-SHELL", "pg_isready -U products -d products"]
@@ -62,3 +64,6 @@ services:
 
 volumes:
   postgres_data:
+networks:
+  default:
+    name: products-local-net

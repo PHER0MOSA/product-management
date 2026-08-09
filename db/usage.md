@@ -7,6 +7,7 @@
 ## SQL ファイルの生成（`create`）
 
 空の up/down SQL を `db/migrations/` に作る。DB 接続は不要。
+{{sql_name}}は置き換えてください。
 
 ```bash
 mkdir -p db/migrations
@@ -29,15 +30,10 @@ docker run --rm \
 
 ## マイグレーション実行（`up`）
 
-SQL を Postgres に適用する。先に DB を起動しておく。
-
-```bash
-docker compose up -d db
-```
-
+SQL を Postgres に適用する。(DBが起動している前提)
 ```bash
 docker run --rm \
-  --network product-management_default \
+  --network products-local-net \
   -v ./db/migrations:/migrations \
   migrate/migrate \
   -path=/migrations \
@@ -47,7 +43,7 @@ docker run --rm \
 
 | 指定 | 意味 |
 |---|---|
-| `--network product-management_default` | compose と同じ Docker ネットワークに入る（下記「ネットワーク」参照） |
+| `--network products-local-net` | compose と同じ Docker ネットワークに入る（下記「ネットワーク」参照） |
 | `-path=/migrations` | コンテナ内のマイグレーションディレクトリ |
 | `-database "..."` | DB 接続 URL（user / password / host / port / DB 名） |
 | `@db:5432` | **サービス名** `db`（`docker-compose.yml` のキー）。コンテナ同士はこの名前で通信する |
@@ -55,18 +51,25 @@ docker run --rm \
 
 戻すときは末尾を `down 1`（1つ戻す）などに変える。
 
-### `product-management_default` とは
+### `products-local-net` とは
 
-`docker compose up` すると、プロジェクト用ネットワークが **1つ** 自動作成される。名前はだいたい `{ディレクトリ名}_default`。
+compose はプロジェクト用ネットワークを **1つ** 作る。名前を固定しないと `{ディレクトリ名}_default` になり、チェックアウト先によって変わる。
 
-このリポジトリでは `product-management_default`。  
-`products-db` / `products-client` など **複数コンテナが同じネットワークに接続**する（コンテナごとにネットワークは作られない）。
+このリポジトリでは [`docker-compose.yml`](../docker-compose.yml) で名前を固定している。
+
+```yaml
+networks:
+  default:
+    name: products-local-net
+```
+
+`products-db` / `products-client` など **複数コンテナが同じネットワークに接続**する（コンテナごとにネットワークは作られない）。ディレクトリ名が変わっても migrate は常に `--network products-local-net` でよい。
 
 確認:
 
 ```bash
 docker network ls
-docker network inspect product-management_default
+docker network inspect products-local-net
 ```
 
 migrate コンテナもこのネットワークに入らないと、ホスト名 `db` に届かない。
