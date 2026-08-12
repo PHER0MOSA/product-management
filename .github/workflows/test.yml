@@ -1,8 +1,8 @@
-name: Test
+name: Unit Test
 on:
   pull_request:
 jobs:
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -13,5 +13,4 @@ jobs:
           go-version: ${{ vars.GO_VERSION }}
           # server/go.sumの内容が変わったときだけ、キャッシュを新しく作成する
           cache-dependency-path: server/go.sum
-      - run: cd server && go test ./...
-
+      - run: cd server && go test ./internal/...

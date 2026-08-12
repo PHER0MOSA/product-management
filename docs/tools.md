@@ -201,6 +201,15 @@ go test ./test/integration/ -v
 
 同じコンテナのまま再実行する場合も、`TestMain` が毎回 TRUNCATE してシードを入れ直すため、テストデータは固定される。
 
+**CI（PR 時）**
+
+| workflow | 内容 |
+|---|---|
+| [`.github/workflows/test.yml`](../.github/workflows/test.yml) | 単体テスト `go test ./internal/...` |
+| [`.github/workflows/integration-test.yml`](../.github/workflows/integration-test.yml) | インテグレーション（[`docker-compose.test.yml`](../docker-compose.test.yml) + `TEST_DATABASE_URL`） |
+
+ローカル・CI とも [`docker-compose.test.yml`](../docker-compose.test.yml)（`:5433`）を使う。
+
 ---
 
 ## golangci-lint
