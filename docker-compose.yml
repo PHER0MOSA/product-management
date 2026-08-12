@@ -12,7 +12,7 @@ services:
     image: swaggerapi/swagger-editor
     container_name: swagger-editor
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     volumes:
       - .:/tmp
     environment:
@@ -23,7 +23,7 @@ services:
     image: swaggerapi/swagger-ui
     container_name: swagger-ui
     ports:
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
     volumes:
       - .:/openapi
     environment:
@@ -34,7 +34,7 @@ services:
     image: nginx:alpine
     container_name: products-client
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     volumes:
       - ./client:/usr/share/nginx/html
 
@@ -59,8 +59,8 @@ services:
       timeout: 5s    # 1回のチェックがこの時間を超えたら失敗扱い
       retries: 5     # 連続失敗がこの回数に達するまで unhealthy にしない（起動直後の猶予）
 
-  # 5. APIサーバー は/server配下でgo run main.goを実行して起動する
-  # (Goのコードを書き換えるたびにコンテナをビルドしたくないため、docker-composeでは起動しない。)
+  # 5. API サーバーは server/ で go run ./cmd/api を実行して起動する
+  # (Go のコードを書き換えるたびにコンテナをビルドしたくないため、docker-compose では起動しない)
 
 volumes:
   postgres_data:

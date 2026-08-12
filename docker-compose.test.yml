@@ -1,0 +1,22 @@
+# テスト用 PostgreSQL（開発 DB とは別・永続ボリュームなし）
+# 毎回新しい DB にする: docker compose -f docker-compose.test.yml down && docker compose -f docker-compose.test.yml up -d
+# 停止: docker compose -f docker-compose.test.yml down
+services:
+  db-test:
+    image: postgres:16
+    container_name: products-db-test
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: products
+      POSTGRES_PASSWORD: products
+      POSTGRES_DB: products_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U products -d products_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  default:
+    name: products-test-net

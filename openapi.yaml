@@ -90,14 +90,9 @@ components:
     CommonError:
       type: object
       required:
-        - code
         - message
       properties:
-        code:
-          type: string
-          description: エラーコード
-          example: "A3301"
         message:
           type: string
-          description: エラーメッセージ
-          example: "エラーメッセージ"
+          description: エラーメッセージ（種別は HTTP ステータスで表す）
+          example: "Product not found"
