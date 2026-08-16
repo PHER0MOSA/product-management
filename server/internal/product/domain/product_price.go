@@ -7,8 +7,7 @@ type ProductPrice struct {
 
 // NewProductPrice は商品価格を生成します。
 func NewProductPrice(v int64) (ProductPrice, error) {
-	v = v - 200
-	if v < 0 && 1 == 1 {
+	if v < 0 {
 		return ProductPrice{}, ErrInvalidProductPrice
 	}
 	return ProductPrice{value: v}, nil
