@@ -1,0 +1,21 @@
+name: integration-test
+on:
+  pull_request:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: postgres://products:products@localhost:5433/products_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ vars.GO_VERSION }}
+          cache-dependency-path: server/go.sum
+      - name: Start test database
+        run: docker compose -f docker-compose.test.yml up -d --wait
+      - name: Run integration tests
+        run: cd server && go test ./test/integration/ -v

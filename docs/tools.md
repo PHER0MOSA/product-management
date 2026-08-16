@@ -150,6 +150,12 @@ go run ./cmd/api
 # テスト
 go test ./...
 
+# 単体テストのみ（DB 不要）
+go test ./internal/...
+
+# インテグレーションテスト（テスト用 DB 必須。下記「インテグレーションテスト」参照）
+go test ./test/integration/ -v
+
 # バイナリを作る
 go build -o bin/api ./cmd/api
 ```
@@ -167,6 +173,61 @@ go build -o bin/api ./cmd/api
 - Docker Compose では API を起動しない（コード変更のたびにイメージ再ビルドしたくないため）
 - ローカルで `go run` 等により起動する想定（ポートは ROADMAP 上 `:8080`）
 - 設計の詳細は [ROADMAP.md](ROADMAP.md)
+
+**環境変数（`.env`）**
+
+毎回 `export` しなくてよいように、リポジトリルートの `.env` を読む（`godotenv`。既にシェル／CI で設定済みの値は上書きしない）。
+
+```bash
+# リポジトリルート（初回のみ）
+cp .env.example .env
+
+cd server
+go run ./cmd/api
+```
+
+| 変数 | 用途 |
+|---|---|
+| `DATABASE_URL` | API 開発・起動 |
+| `TEST_DATABASE_URL` | インテグレーションテスト |
+
+`.env` は Git 管理外（[`.gitignore`](../.gitignore)）。雛形は [`.env.example`](../.env.example)。
+
+**開発 DB とテスト DB の使い分け**
+
+| 用途 | 接続先 | 環境変数 |
+|---|---|---|
+| API 開発・起動 | `localhost:5432` / `products` | `DATABASE_URL` |
+| インテグレーションテスト | `localhost:5433` / `products_test` | `TEST_DATABASE_URL` |
+
+開発中に `products` の中身が変わっても、テストは別 DB を使うため結果がぶれない。
+
+**インテグレーションテスト**
+
+毎回新しい DB にする（ボリュームなし。コンテナを作り直すと中身は空になる）:
+
+```bash
+# リポジトリルート
+cp .env.example .env   # 初回のみ（TEST_DATABASE_URL を含む）
+docker compose -f docker-compose.test.yml down
+docker compose -f docker-compose.test.yml up -d
+
+cd server
+go test ./test/integration/ -v
+```
+
+`TestMain` がスキーマ作成（`CREATE TABLE IF NOT EXISTS`）とシード投入（商品A/B/C）を行う。**migrate は不要**。
+
+同じコンテナのまま再実行する場合も、`TestMain` が毎回 TRUNCATE してシードを入れ直すため、テストデータは固定される。
+
+**CI（PR 時）**
+
+| workflow | 内容 |
+|---|---|
+| [`.github/workflows/test.yml`](../.github/workflows/test.yml) | 単体テスト `go test ./internal/...` |
+| [`.github/workflows/integration-test.yml`](../.github/workflows/integration-test.yml) | インテグレーション（[`docker-compose.test.yml`](../docker-compose.test.yml) + `TEST_DATABASE_URL`） |
+
+ローカル・CI とも [`docker-compose.test.yml`](../docker-compose.test.yml)（`:5433`）を使う。
 
 ---
 
@@ -224,7 +285,6 @@ $(go env GOPATH)/bin/golangci-lint run
 - 設定: [`server/.golangci.yml`](../server/.golangci.yml)（`version: "2"`、`linters.default: standard`）
 - ローカル実行: `server/` で `$(go env GOPATH)/bin/golangci-lint run`
 - CI: [`.github/workflows/golangci-lint.yml`](../.github/workflows/golangci-lint.yml) が PR 時に `working-directory: server` で実行
-- 除外: 旧 Swagger Codegen 生成物 `server/go/` は暫定で lint 対象外（オニオン置換までの措置）
 
 ---
 

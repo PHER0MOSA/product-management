@@ -8,7 +8,3 @@ run:
 
 linters:
   default: standard
-  exclusions:
-    # Swagger Codegen 生成物。オニオンアーキテクチャ置換までの暫定除外
-    paths:
-      - go/
