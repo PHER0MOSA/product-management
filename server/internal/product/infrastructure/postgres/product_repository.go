@@ -22,22 +22,26 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 }
 
 // List は商品をすべて返す。
-func (r *ProductRepository) List(ctx context.Context) ([]*domain.Product, error) {
+func (r *ProductRepository) List(ctx context.Context) (products []*domain.Product, err error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT id, name, price FROM products ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("list products: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("list products: close rows: %w", cerr)
+		}
+	}()
 
-	var products []*domain.Product
 	for rows.Next() {
-		p, err := scanProduct(rows)
+		var p *domain.Product
+		p, err = scanProduct(rows)
 		if err != nil {
 			return nil, fmt.Errorf("[repository] list products: %w", err)
 		}
 		products = append(products, p)
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("list products: %w", err)
 	}
 	return products, nil

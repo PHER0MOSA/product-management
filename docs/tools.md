@@ -174,6 +174,25 @@ go build -o bin/api ./cmd/api
 - ローカルで `go run` 等により起動する想定（ポートは ROADMAP 上 `:8080`）
 - 設計の詳細は [ROADMAP.md](ROADMAP.md)
 
+**環境変数（`.env`）**
+
+毎回 `export` しなくてよいように、リポジトリルートの `.env` を読む（`godotenv`。既にシェル／CI で設定済みの値は上書きしない）。
+
+```bash
+# リポジトリルート（初回のみ）
+cp .env.example .env
+
+cd server
+go run ./cmd/api
+```
+
+| 変数 | 用途 |
+|---|---|
+| `DATABASE_URL` | API 開発・起動 |
+| `TEST_DATABASE_URL` | インテグレーションテスト |
+
+`.env` は Git 管理外（[`.gitignore`](../.gitignore)）。雛形は [`.env.example`](../.env.example)。
+
 **開発 DB とテスト DB の使い分け**
 
 | 用途 | 接続先 | 環境変数 |
@@ -189,10 +208,10 @@ go build -o bin/api ./cmd/api
 
 ```bash
 # リポジトリルート
+cp .env.example .env   # 初回のみ（TEST_DATABASE_URL を含む）
 docker compose -f docker-compose.test.yml down
 docker compose -f docker-compose.test.yml up -d
 
-export TEST_DATABASE_URL="postgres://products:products@localhost:5433/products_test?sslmode=disable"
 cd server
 go test ./test/integration/ -v
 ```

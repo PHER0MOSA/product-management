@@ -4,9 +4,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 
+	"products-manage-server/internal/config"
 	infrapg "products-manage-server/internal/infrastructure/postgres"
 	"products-manage-server/internal/product/application"
 	"products-manage-server/internal/product/handler"
@@ -14,12 +16,17 @@ import (
 )
 
 func main() {
+	config.LoadDotEnv()
 	databaseURL := os.Getenv("DATABASE_URL")
 	db, err := infrapg.Open(databaseURL)
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("close database: %v", err)
+		}
+	}()
 
 	repo := productpg.NewProductRepository(db)
 	svc := application.NewProductService(repo)
@@ -30,8 +37,13 @@ func main() {
 	productHandler.Register(r)
 
 	addr := ":8080"
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 	log.Printf("Server started on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, r))
+	log.Fatal(srv.ListenAndServe())
 }
 
 // corsMiddleware はブラウザ（クライアント UI / Swagger UI）からのアクセスを許可する。

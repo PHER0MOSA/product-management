@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"products-manage-server/internal/config"
 	infrapg "products-manage-server/internal/infrastructure/postgres"
 	"products-manage-server/internal/product/application"
 	"products-manage-server/internal/product/handler"
@@ -26,6 +27,7 @@ type errorJSON struct {
 }
 
 func TestMain(m *testing.M) {
+	config.LoadDotEnv()
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
 		log.Fatal("TEST_DATABASE_URL is not set")
@@ -35,10 +37,13 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
-	defer db.Close()
 
 	if err := setupTestDB(db); err != nil {
+		_ = db.Close()
 		log.Fatalf("setup test db: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		log.Fatalf("close database: %v", err)
 	}
 
 	os.Exit(m.Run())
